@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QDII 额度透视</title>
+  <title>QDII 额度助手</title>
+  <link rel="shortcut icon" href="favicon.png" type="image/x-icon">
   <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
   <style>
     :root {
@@ -286,6 +287,54 @@
       box-shadow: var(--ths-shadow);
     }
 
+    .list li.skeleton {
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .sk {
+      display: block;
+      border-radius: 6px;
+      background: linear-gradient(90deg, #f3f3f3 25%, #e6e6e6 37%, #f3f3f3 63%);
+      background-size: 400% 100%;
+      animation: shimmer 1.15s ease infinite;
+    }
+
+    .sk-title {
+      width: 62%;
+      height: 16px;
+    }
+
+    .sk-meta {
+      width: 38%;
+      height: 12px;
+      margin-top: 10px;
+    }
+
+    .sk-quota {
+      width: 72px;
+      height: 18px;
+      margin-left: auto;
+    }
+
+    .sk-year {
+      width: 52px;
+      height: 18px;
+      margin-top: 8px;
+      margin-left: auto;
+      border-radius: 999px;
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: 100% 0;
+      }
+
+      100% {
+        background-position: 0 0;
+      }
+    }
+
     .list {
       list-style: none;
       margin: 12px 0 0;
@@ -433,8 +482,8 @@
           <div class="mark">
             <i>顺</i>
             <div>
-              <h1>QDII 额度透视</h1>
-              <p>小白的海外投资小助手</p>
+              <h1>QDII 额度助手</h1>
+              <p>一起投资海外市场，实现24h亏钱</p>
             </div>
           </div>
           <button class="refresh" type="button" :disabled="loading" @click="loadAll">
@@ -446,7 +495,7 @@
           <button v-for="tab in tabs" :key="tab.id" type="button" :class="{ active: tab.id === activeTab }"
             @click="selectTab(tab.id)">
             {{ tab.label }}
-            <small v-if="summaryOf(tab.id)">{{ summaryOf(tab.id).buy }}/{{ summaryOf(tab.id).total }}</small>
+            <small v-if="summaryOf(tab.id)">{{ summaryOf(tab.id).total }}</small>
           </button>
         </div>
       </header>
@@ -471,7 +520,18 @@
         </div>
       </section>
 
-      <p v-if="loading && !funds.length" class="hint">正在查询额度…</p>
+      <ul v-if="loading" class="list" aria-busy="true" aria-label="正在查询额度">
+        <li v-for="n in 6" :key="'sk-' + n" class="skeleton">
+          <div class="main">
+            <span class="sk sk-title"></span>
+            <span class="sk sk-meta"></span>
+          </div>
+          <div class="nums">
+            <span class="sk sk-quota"></span>
+            <span class="sk sk-year"></span>
+          </div>
+        </li>
+      </ul>
       <p v-else-if="!visibleFunds.length" class="hint">这个分类暂时没有基金明细</p>
 
       <ul v-else class="list">
@@ -495,13 +555,12 @@
   </div>
 
   <script>
-    var API_BASE = "https://fuyao.aicubes.cn";
-    var API_KEY = "sk-fuyao-hf-toQ8Q1mqWgQOQVoH0WdZgGFtV8-nU";
+    var API_BASE = "https://tonghua.jasonbai.dpdns.org";
 
     var TABS = [
       { id: "remen", label: "热门" },
-      { id: "nazhi100", label: "纳指100", fromHot: "nazhi100" },
-      { id: "meigukeji", label: "美股科技", fromHot: "meigukeji" },
+      { id: "nazhi100", label: "纳指", fromHot: "nazhi100" },
+      { id: "meigukeji", label: "科技", fromHot: "meigukeji" },
       { id: "ouzhou", label: "欧洲" },
       { id: "yatai", label: "亚太" },
     ];
@@ -678,17 +737,19 @@
               return key + "=" + encodeURIComponent(query[key]);
             })
             .join("&");
-          return fetch(API_BASE + path + "?" + params, {
-            headers: { "X-api-key": API_KEY },
-          })
+          return fetch(API_BASE + path + "?" + params)
             .then(function (res) {
-              return res.json();
-            })
-            .then(function (body) {
-              if (!body || body.code !== 0) {
-                throw new Error((body && body.message) || "接口返回异常");
-              }
-              return body.data;
+              return res.json().then(
+                function (body) {
+                  if (!body || body.code !== 0) {
+                    throw new Error((body && (body.message || body.error)) || "接口返回异常");
+                  }
+                  return body.data;
+                },
+                function () {
+                  throw new Error(res.ok ? "接口返回异常" : "接口请求失败（" + res.status + "）");
+                }
+              );
             });
         },
         compareFund: function (a, b) {
