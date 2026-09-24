@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QDII 额度透视</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+  <style>
+    :root {
+      --ths-red: #e93030;
+      --ths-red-deep: #c81f1f;
+      --ths-red-soft: #fff2f2;
+      --ths-rise: #e93030;
+      --ths-fall: #009900;
+      --ths-quota: #12a36a;
+      --ths-bg: #f5f5f5;
+      --ths-card: #ffffff;
+      --ths-text: #323232;
+      --ths-text-2: #666666;
+      --ths-text-3: #999999;
+      --ths-line: #eeeeee;
+      --ths-shadow: 0 8px 24px rgba(50, 50, 50, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", Avenir, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      color: var(--ths-text);
+      background: var(--ths-bg);
+    }
+
+    button,
+    input,
+    select {
+      font-family: inherit;
+    }
+
+    #app {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .quota {
+      min-height: 100vh;
+      padding: 0 14px 32px;
+      text-align: left;
+      background:
+        radial-gradient(120% 80px at 50% 0, rgba(233, 48, 48, 0.08), transparent 70%),
+        var(--ths-bg);
+      color: var(--ths-text);
+    }
+
+    .hero {
+      position: relative;
+      margin: 0 -14px;
+      padding: 22px 18px 56px;
+      overflow: hidden;
+      background: linear-gradient(165deg, #ff5a4a 0%, #e93030 42%, #c81f1f 100%);
+      color: #fff;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 180px;
+      height: 180px;
+      right: -48px;
+      top: -70px;
+    }
+
+    .hero::after {
+      width: 120px;
+      height: 120px;
+      left: -36px;
+      bottom: -40px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .head {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .mark {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mark i {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+      font-style: normal;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .head h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 650;
+      letter-spacing: 0.2px;
+    }
+
+    .head p {
+      margin: 3px 0 0;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 12px;
+    }
+
+    .refresh {
+      position: relative;
+      z-index: 1;
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 16px;
+      background: #fff;
+      color: var(--ths-red);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(140, 16, 16, 0.18);
+    }
+
+    .refresh:active {
+      transform: translateY(1px);
+    }
+
+    .refresh:disabled {
+      opacity: 0.72;
+      cursor: default;
+    }
+
+    .error {
+      position: relative;
+      z-index: 2;
+      margin: -36px 0 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ths-red);
+      font-size: 13px;
+      box-shadow: var(--ths-shadow);
+    }
+
+    .sheet {
+      position: relative;
+      z-index: 2;
+      margin-top: -40px;
+      padding: 14px 12px 12px;
+      border-radius: 16px;
+      background: var(--ths-card);
+      box-shadow: var(--ths-shadow);
+    }
+
+    .tabs,
+    .subtabs {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      margin-top: 16px;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+
+    .tabs::-webkit-scrollbar,
+    .subtabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tabs button,
+    .subtabs button {
+      flex: 0 0 auto;
+      border: 0;
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 13px;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .tabs button.active {
+      background: #fff;
+      color: var(--ths-red);
+      font-weight: 650;
+    }
+
+    .subtabs {
+      margin-top: 12px;
+    }
+
+    .subtabs button {
+      background: var(--ths-bg);
+      color: var(--ths-text-2);
+    }
+
+    .subtabs button.active {
+      background: var(--ths-red-soft);
+      color: var(--ths-red);
+      font-weight: 650;
+      box-shadow: inset 0 0 0 1px #ffd4d4;
+    }
+
+    .tabs small,
+    .subtabs small {
+      margin-left: 4px;
+      font-size: 11px;
+      opacity: 0.85;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .toolbar input[type="search"],
+    .toolbar select {
+      height: 38px;
+      border: 1px solid var(--ths-line);
+      border-radius: 10px;
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--ths-text);
+      background: #fafafa;
+      outline: none;
+    }
+
+    .toolbar input[type="search"] {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .toolbar input[type="search"]:focus,
+    .toolbar select:focus {
+      border-color: #f3a3a3;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(233, 48, 48, 0.12);
+    }
+
+    .toolbar select {
+      flex: 0 1 auto;
+      width: auto;
+      max-width: 52%;
+      min-width: 0;
+      color: var(--ths-text-2);
+    }
+
+    .hint {
+      margin-top: 28px;
+      padding: 28px 16px;
+      text-align: center;
+      color: var(--ths-text-3);
+      font-size: 14px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: var(--ths-shadow);
+    }
+
+    .list {
+      list-style: none;
+      margin: 12px 0 0;
+      padding: 0;
+    }
+
+    .list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: var(--ths-card);
+      border-radius: 14px;
+      padding: 14px 14px 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 10px rgba(50, 50, 50, 0.04);
+      border: 1px solid #f7f7f7;
+      cursor: pointer;
+    }
+
+    .list li:active {
+      background: #fafafa;
+    }
+
+    .main {
+      min-width: 0;
+    }
+
+    .main h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 650;
+      line-height: 1.45;
+      color: var(--ths-text);
+    }
+
+    .main p {
+      margin: 6px 0 0;
+      line-height: 1.6;
+    }
+
+    .code {
+      color: var(--ths-text-3);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--ths-red-soft);
+      color: var(--ths-red);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .nums {
+      flex: 0 0 auto;
+      text-align: right;
+    }
+
+    .nums strong {
+      display: block;
+      color: var(--ths-quota);
+      font-size: 17px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.2px;
+    }
+
+    .nums strong.unlimited {
+      color: var(--ths-quota);
+    }
+
+    .nums em {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-style: normal;
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--ths-text-3);
+      background: #f5f5f5;
+    }
+
+    .nums .up {
+      color: var(--ths-rise);
+      background: var(--ths-red-soft);
+    }
+
+    .nums .down {
+      color: var(--ths-fall);
+      background: #f1faf1;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      z-index: 5;
+      max-width: calc(100% - 48px);
+      transform: translateX(-50%);
+      margin: 0;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(18, 163, 106, 0.96);
+      color: #fff;
+      font-size: 13px;
+      line-height: 1.4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: 0 8px 20px rgba(18, 163, 106, 0.28);
+    }
+
+    @media (max-width: 560px) {
+      .toolbar {
+        flex-wrap: nowrap;
+      }
+
+      .toolbar input[type="search"],
+      .toolbar select {
+        height: 36px;
+        padding: 0 8px;
+        font-size: 13px;
+      }
+
+      .toolbar select {
+        max-width: 54%;
+        width: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="quota">
+      <header class="hero">
+        <div class="head">
+          <div class="mark">
+            <i>顺</i>
+            <div>
+              <h1>QDII 额度透视</h1>
+              <p>海外投资小助手</p>
+            </div>
+          </div>
+          <button class="refresh" type="button" :disabled="loading" @click="loadAll">
+            {{ loading ? "刷新中" : "刷新" }}
+          </button>
+        </div>
+
+        <div class="tabs">
+          <button v-for="tab in tabs" :key="tab.id" type="button" :class="{ active: tab.id === activeTab }"
+            @click="selectTab(tab.id)">
+            {{ tab.label }}
+            <small v-if="summaryOf(tab.id)">{{ summaryOf(tab.id).buy }}/{{ summaryOf(tab.id).total }}</small>
+          </button>
+        </div>
+      </header>
+
+      <p v-if="error" class="error">{{ error }}</p>
+
+      <section class="sheet">
+        <div class="toolbar">
+          <input v-model.trim="keyword" type="search" placeholder="搜索基金名称或代码" />
+          <select v-model="sortKey">
+            <option value="quotaDesc">额度从高到低</option>
+            <option value="quotaAsc">额度从低到高</option>
+            <option value="yearDesc">近一年从高到低</option>
+          </select>
+        </div>
+
+        <div v-if="subTabs.length > 1" class="subtabs">
+          <button v-for="sub in subTabs" :key="sub.name" type="button" :class="{ active: sub.name === activeSub }"
+            @click="selectSub(sub)">
+            {{ subLabel(sub.name) }}
+          </button>
+        </div>
+      </section>
+
+      <p v-if="loading && !funds.length" class="hint">正在查询额度…</p>
+      <p v-else-if="!visibleFunds.length" class="hint">这个分类暂时没有基金明细</p>
+
+      <ul v-else class="list">
+        <li v-for="fund in visibleFunds" :key="fund.thscode" @click="copyName(fund)">
+          <div class="main">
+            <h2>{{ fund.fund_name }}</h2>
+            <p>
+              <span class="code">{{ fund.thscode }}</span>
+              <span v-for="tag in fund.classify || []" :key="tag" class="tag">{{ tag }}</span>
+            </p>
+          </div>
+          <div class="nums">
+            <strong :class="{ unlimited: fund.quota == null }">{{ formatQuota(fund.quota) }}</strong>
+            <em :class="yearClass(fund.year)">{{ formatYear(fund.year) }}</em>
+          </div>
+        </li>
+      </ul>
+
+      <p v-if="toast" class="toast">{{ toast }}</p>
+    </div>
+  </div>
+
+  <script>
+    var API_BASE = "https://fuyao.aicubes.cn";
+    var API_KEY = "sk-fuyao-hf-toQ8Q1mqWgQOQVoH0WdZgGFtV8-nU";
+
+    var TABS = [
+      { id: "remen", label: "热门" },
+      { id: "nazhi100", label: "纳指100", fromHot: "nazhi100" },
+      { id: "meigukeji", label: "美股科技", fromHot: "meigukeji" },
+      { id: "ouzhou", label: "欧洲" },
+      { id: "yatai", label: "亚太" },
+    ];
+
+    var SUB_LABELS = {
+      all: "全部",
+      remen: "热门",
+      nazhi100: "纳指100",
+      meigukeji: "美股科技",
+      ouzhou: "欧洲",
+      yatai: "亚太",
+    };
+
+    new Vue({
+      el: "#app",
+      data: {
+        tabs: TABS,
+        activeTab: "remen",
+        activeSub: "",
+        summaries: [],
+        hotSubs: [],
+        subTabs: [],
+        funds: [],
+        keyword: "",
+        sortKey: "quotaDesc",
+        loading: false,
+        error: "",
+        toast: "",
+      },
+      computed: {
+        visibleFunds: function () {
+          var key = this.keyword.toLowerCase();
+          var self = this;
+          var list = this.funds.filter(function (fund) {
+            if (!key) return true;
+            return (
+              (fund.fund_name || "").toLowerCase().indexOf(key) !== -1 ||
+              (fund.thscode || "").toLowerCase().indexOf(key) !== -1
+            );
+          });
+          return list.slice().sort(function (a, b) {
+            return self.compareFund(a, b);
+          });
+        },
+      },
+      mounted: function () {
+        this.loadAll();
+      },
+      methods: {
+        summaryOf: function (id) {
+          return (
+            this.summaries.find(function (item) {
+              return item.name === id;
+            }) || null
+          );
+        },
+        subLabel: function (name) {
+          return SUB_LABELS[name] || name;
+        },
+        fundsOf: function (sub) {
+          return (sub && sub.fund_list) || [];
+        },
+        selectSub: function (sub) {
+          this.activeSub = sub.name;
+          this.funds = this.fundsOf(sub);
+        },
+        selectTab: function (id) {
+          if (this.activeTab === id) return;
+          this.activeTab = id;
+          this.keyword = "";
+          this.showTab();
+        },
+        tabById: function (id) {
+          return (
+            this.tabs.find(function (item) {
+              return item.id === id;
+            }) || null
+          );
+        },
+        hotSub: function (name) {
+          return (
+            this.hotSubs.find(function (item) {
+              return item.name === name;
+            }) || null
+          );
+        },
+        countSummary: function (name, funds) {
+          var buy = funds.filter(function (fund) {
+            if (fund.quota == null || fund.quota === "") return true;
+            var value = Number(fund.quota);
+            return !Number.isNaN(value) && value > 0;
+          }).length;
+          return { name: name, buy: String(buy), total: String(funds.length) };
+        },
+        showHotSlice: function (subName) {
+          var sub = this.hotSub(subName);
+          this.subTabs = [];
+          this.activeSub = subName;
+          this.funds = this.fundsOf(sub);
+          this.loading = false;
+        },
+        showHotHome: function () {
+          var promoted = { nazhi100: true, meigukeji: true };
+          var subs = this.hotSubs.filter(function (item) {
+            return !promoted[item.name];
+          });
+          this.subTabs = subs;
+          this.activeSub = subs[0] ? subs[0].name : "";
+          this.funds = this.fundsOf(subs[0]);
+          this.loading = false;
+        },
+        showTab: function () {
+          var tab = this.tabById(this.activeTab);
+          if (tab && tab.fromHot) {
+            this.showHotSlice(tab.fromHot);
+            return;
+          }
+          if (!tab || tab.id === "remen") {
+            this.showHotHome();
+            return;
+          }
+          this.loadList();
+        },
+        loadAll: function () {
+          var self = this;
+          this.loading = true;
+          this.error = "";
+          var summaryTabs = JSON.stringify(["ouzhou", "yatai"]);
+          Promise.all([
+            this.request("/api/fund/quota/summary", { tab: summaryTabs }),
+            this.request("/api/fund/quota/list", { tab: JSON.stringify(["remen"]) }),
+          ])
+            .then(function (result) {
+              var summary = result[0] || [];
+              var hot = (result[1] || [])[0] || {};
+              self.hotSubs = hot.sub_tab || [];
+              var derived = [];
+              ["nazhi100", "meigukeji"].forEach(function (name) {
+                var sub = self.hotSub(name);
+                if (sub) derived.push(self.countSummary(name, self.fundsOf(sub)));
+              });
+              self.summaries = derived.concat(summary);
+              self.showTab();
+            })
+            .catch(function (err) {
+              self.error = err.message || "额度查询失败";
+              self.loading = false;
+            });
+        },
+        loadList: function () {
+          var self = this;
+          this.loading = true;
+          this.error = "";
+          var query = { tab: JSON.stringify([this.activeTab]) };
+          return this.request("/api/fund/quota/list", query)
+            .then(function (data) {
+              var category = (data || [])[0] || {};
+              var subs = category.sub_tab || [];
+              self.subTabs = subs;
+              self.activeSub = subs[0] ? subs[0].name : "";
+              self.funds = self.fundsOf(subs[0]);
+              self.loading = false;
+            })
+            .catch(function (err) {
+              self.funds = [];
+              self.subTabs = [];
+              self.error = err.message || "基金列表查询失败";
+              self.loading = false;
+            });
+        },
+        request: function (path, query) {
+          var params = Object.keys(query)
+            .map(function (key) {
+              return key + "=" + encodeURIComponent(query[key]);
+            })
+            .join("&");
+          return fetch(API_BASE + path + "?" + params, {
+            headers: { "X-api-key": API_KEY },
+          })
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (body) {
+              if (!body || body.code !== 0) {
+                throw new Error((body && body.message) || "接口返回异常");
+              }
+              return body.data;
+            });
+        },
+        compareFund: function (a, b) {
+          if (this.sortKey === "yearDesc") return this.yearValue(b) - this.yearValue(a);
+          var desc = this.sortKey !== "quotaAsc";
+          return desc ? this.quotaValue(b) - this.quotaValue(a) : this.quotaValue(a) - this.quotaValue(b);
+        },
+        quotaValue: function (fund) {
+          if (fund.quota == null || fund.quota === "") return Number.POSITIVE_INFINITY;
+          var value = Number(fund.quota);
+          return Number.isNaN(value) ? 0 : value;
+        },
+        yearValue: function (fund) {
+          if (fund.year == null || fund.year === "") return Number.NEGATIVE_INFINITY;
+          var value = Number(fund.year);
+          return Number.isNaN(value) ? Number.NEGATIVE_INFINITY : value;
+        },
+        formatQuota: function (quota) {
+          if (quota == null || quota === "") return "无限额";
+          var value = Number(quota);
+          if (Number.isNaN(value)) return String(quota);
+          if (value >= 10000) {
+            var wan = value / 10000;
+            var text = wan >= 100 ? String(Math.round(wan)) : String(Math.round(wan * 100) / 100);
+            return text + "万元";
+          }
+          var yuan = value % 1 === 0 ? String(value) : String(Math.round(value * 100) / 100);
+          return yuan + "元";
+        },
+        formatYear: function (year) {
+          if (year == null || year === "") return "--";
+          var value = Number(year);
+          if (Number.isNaN(value)) return String(year);
+          var text = value.toFixed(2) + "%";
+          return value > 0 ? "+" + text : text;
+        },
+        copyName: function (fund) {
+          var name = (fund && fund.fund_name) || "";
+          if (!name) return;
+          var self = this;
+          var done = function () {
+            self.toast = "已复制 " + name;
+            clearTimeout(self._toastTimer);
+            self._toastTimer = setTimeout(function () {
+              self.toast = "";
+            }, 1600);
+          };
+          var fallback = function () {
+            var input = document.createElement("textarea");
+            input.value = name;
+            input.setAttribute("readonly", "");
+            input.style.position = "fixed";
+            input.style.left = "-9999px";
+            document.body.appendChild(input);
+            input.select();
+            try {
+              document.execCommand("copy");
+              done();
+            } catch (err) {
+              self.toast = "复制失败";
+            }
+            document.body.removeChild(input);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(name).then(done).catch(fallback);
+            return;
+          }
+          fallback();
+        },
+        yearClass: function (year) {
+          var value = Number(year);
+          if (Number.isNaN(value)) return "";
+          if (value > 0) return "up";
+          if (value < 0) return "down";
+          return "";
+        },
+      },
+    });
+  </script>
+</body>
+
+</html>
