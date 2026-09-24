@@ -292,6 +292,16 @@
       pointer-events: none;
     }
 
+    .list li.skeleton .main {
+      flex: 1 1 auto;
+    }
+
+    .list li.skeleton .nums {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
     .sk {
       display: block;
       border-radius: 6px;
@@ -301,29 +311,36 @@
     }
 
     .sk-title {
-      width: 62%;
+      width: 92%;
       height: 16px;
     }
 
     .sk-meta {
-      width: 38%;
+      width: 46%;
       height: 12px;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
     .sk-quota {
-      width: 72px;
-      height: 18px;
-      margin-left: auto;
+      width: 68px;
+      height: 17px;
     }
 
     .sk-year {
       width: 52px;
-      height: 18px;
+      height: 16px;
       margin-top: 8px;
-      margin-left: auto;
       border-radius: 999px;
     }
+
+    .list li.skeleton:nth-child(3n + 2) .sk-title { width: 78%; }
+    .list li.skeleton:nth-child(3n + 2) .sk-meta { width: 38%; }
+    .list li.skeleton:nth-child(3n + 2) .sk-quota { width: 56px; }
+    .list li.skeleton:nth-child(3n + 2) .sk-year { width: 46px; }
+    .list li.skeleton:nth-child(3n) .sk-title { width: 86%; }
+    .list li.skeleton:nth-child(3n) .sk-meta { width: 52%; }
+    .list li.skeleton:nth-child(3n) .sk-quota { width: 76px; }
+    .list li.skeleton:nth-child(3n) .sk-year { width: 58px; }
 
     @keyframes shimmer {
       0% {
